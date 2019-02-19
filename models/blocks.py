@@ -4,18 +4,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Downblock(nn.Module):
-    def __init__(self, channels, kernel_size=3, relu=True, stride=2, padding=1):
+    def __init__(self, channels, kernel_size=3):
         super(Downblock, self).__init__()
-        self.dwconv = nn.Conv2d(channels, channels, groups=channels, stride=stride,
-                                kernel_size=kernel_size, padding=padding, bias=False)
-        
+        self.dwconv = nn.Conv2d(channels, channels, groups=channels, stride=2,
+                                kernel_size=kernel_size, padding=1, bias=False)
         self.bn = nn.BatchNorm2d(channels)
-        self.relu = relu
-
     def forward(self, x):
-        x = self.bn(self.dwconv(x))
-        if self.relu: x = F.relu(x)
-        return x
+        return self.bn(self.dwconv(x))
 
 class GEBlock(nn.Module):
     def __init__(self, in_planes, out_planes, stride, spatial, extent=0, extra_params=True, mlp=True, dropRate=0.0):
@@ -36,14 +31,14 @@ class GEBlock(nn.Module):
         if extra_params:
             if extent == 0:
                 # Global DW Conv + BN
-                self.downop = Downblock(out_planes, relu=False, kernel_size=spatial)
+                self.downop = Downblock(out_planes, kernel_size=spatial)
             elif extent == 2:
-                self.downop = Downblock(out_planes, relu=False)
+                self.downop = Downblock(out_planes)
             elif extent == 4:
-                self.downop = nn.Sequential(Downblock(out_planes, relu=True), Downblock(out_planes, relu=False))
+                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(in_place=True), Downblock(out_planes))
             elif extent == 8:
-                self.downop = nn.Sequential(Downblock(out_planes, relu=True),
-                    Downblock(out_planes, relu=True), Downblock(out_planes, relu=False))
+                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(in_place=True),
+                    Downblock(out_planes), nn.ReLU(in_place=True), Downblock(out_planes))
             else:
                 raise NotImplementedError('Extent must be 0,2,4 or 8 for now')
         else:
@@ -53,10 +48,12 @@ class GEBlock(nn.Module):
             nn.Conv2d(out_planes // 16, out_planes, kernel_size=1, padding=0, bias=False)) if mlp else lambda x: x
 
     def forward(self, x):
-        out = self.conv2(self.conv1(x))
+        conv1 = self.conv1(x)
+        out = self.conv2(conv1)
         # Down, up, sigmoid
         map = self.mlp(self.downop(out))
         # Assuming squares because lazy.
         map = F.interpolate(map, out.shape[-1])
         map = torch.sigmoid(map)
-        return torch.add(x if self.equalInOut else self.convShortcut(x), out * map)
+        if not self.equalInOut: x = self.convShortcut(conv1)
+        return torch.add(x, out * map)
