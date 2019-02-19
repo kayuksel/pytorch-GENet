@@ -31,18 +31,11 @@ class GEBlock(nn.Module):
             out_planes, kernel_size=1, stride=stride, bias=False) or None
 
         if extra_params:
-            if extent == 0:
-                # Global DW Conv + BN
-                self.downop = Downblock(out_planes, kernel_size=spatial)
-            elif extent == 2:
-                self.downop = Downblock(out_planes)
-            elif extent == 4:
-                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(inplace=True), Downblock(out_planes))
-            elif extent == 8:
-                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(inplace=True),
-                    Downblock(out_planes), nn.ReLU(inplace=True), Downblock(out_planes))
-            else:
-                raise NotImplementedError('Extent must be 0,2,4 or 8 for now')
+            modules = []
+            if extent: modules.append(Downblock(out_planes))
+            if extent == 4: modules.append(nn.Sequential(nn.ReLU(inplace=True), Downblock(out_planes)))
+            if extent == 8: modules.append(nn.Sequential(nn.ReLU(inplace=True), Downblock(out_planes)))
+            self.downop = nn.Sequential(*modules) if extent else Downblock(out_planes, kernel_size=spatial)
         else:
             self.downop = nn.AdaptiveAvgPool2d(spatial // extent) if extent else self.downop = nn.AdaptiveAvgPool2d(1)
 
