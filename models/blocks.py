@@ -36,7 +36,7 @@ class GEBlock(nn.Module):
                 modules.append(nn.Sequential(nn.ReLU(inplace=True), Downblock(out_planes)))
             self.downop = nn.Sequential(*modules) if extent else Downblock(out_planes, kernel_size=spatial)
         else:
-            self.downop = nn.AdaptiveAvgPool2d(spatial // extent) if extent else self.downop = nn.AdaptiveAvgPool2d(1)
+            self.downop = nn.AdaptiveAvgPool2d(spatial // extent) if extent else nn.AdaptiveAvgPool2d(1)
 
         self.mlp = nn.Sequential(nn.Conv2d(out_planes, out_planes // 16, kernel_size=1, padding=0, bias=False), nn.ReLU(inplace=True),
             nn.Conv2d(out_planes // 16, out_planes, kernel_size=1, padding=0, bias=False)) if mlp else lambda x: x
