@@ -8,7 +8,9 @@ class Downblock(nn.Module):
         super(Downblock, self).__init__()
         self.dwconv = nn.Conv2d(channels, channels, groups=channels, stride=2,
                                 kernel_size=kernel_size, padding=1, bias=False)
+
         self.bn = nn.BatchNorm2d(channels)
+
     def forward(self, x):
         return self.bn(self.dwconv(x))
 
@@ -20,8 +22,8 @@ class GEBlock(nn.Module):
         self.conv1 = nn.Sequential(nn.BatchNorm2d(in_planes), nn.ReLU(inplace=True),
             nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False))
 
-        self.conv2 = nn.Sequential(nn.BatchNorm2d(out_planes), nn.ReLU(inplace=True), 
-            nn.Dropout(p=dropRate), nn.Conv2d(out_planes, out_planes, kernel_size=3, padding=1, bias=False))
+        self.conv2 = nn.Sequential(nn.BatchNorm2d(out_planes), nn.ReLU(inplace=True), nn.Dropout(p=dropRate), 
+            nn.Conv2d(out_planes, out_planes, kernel_size=3, padding=1, bias=False))
 
         self.equalInOut = (in_planes == out_planes)
 
@@ -48,10 +50,12 @@ class GEBlock(nn.Module):
             nn.Conv2d(out_planes // 16, out_planes, kernel_size=1, padding=0, bias=False)) if mlp else lambda x: x
 
     def forward(self, x):
-        out = self.conv2(self.conv1(x))
+        conv1 = self.conv1(x)
+        out = self.conv2(conv1)
         # Down, up, sigmoid
         map = self.mlp(self.downop(out))
         # Assuming squares because lazy.
         map = F.interpolate(map, out.shape[-1])
         map = torch.sigmoid(map)
-        return torch.add(x if self.equalInOut else self.convShortcut(x), out * map)
+        if not self.equalInOut: x = self.convShortcut(conv1)
+        return torch.add(x, out * map)
