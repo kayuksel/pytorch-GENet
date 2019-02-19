@@ -37,10 +37,10 @@ class GEBlock(nn.Module):
             elif extent == 2:
                 self.downop = Downblock(out_planes)
             elif extent == 4:
-                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(in_place=True), Downblock(out_planes))
+                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(inplace=True), Downblock(out_planes))
             elif extent == 8:
-                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(in_place=True),
-                    Downblock(out_planes), nn.ReLU(in_place=True), Downblock(out_planes))
+                self.downop = nn.Sequential(Downblock(out_planes), nn.ReLU(inplace=True),
+                    Downblock(out_planes), nn.ReLU(inplace=True), Downblock(out_planes))
             else:
                 raise NotImplementedError('Extent must be 0,2,4 or 8 for now')
         else:
