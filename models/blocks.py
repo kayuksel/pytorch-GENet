@@ -31,7 +31,7 @@ class GEBlock(nn.Module):
 
         if extra_params:
             if extent: modules = [Downblock(out_planes)]
-            for i in range(extent // 2): modules.append(nn.Sequential(nn.ReLU(inplace=True), Downblock(out_planes)))
+            for i in range((extent-1) // 2): modules.append(nn.Sequential(nn.ReLU(inplace=True), Downblock(out_planes)))
             self.downop = nn.Sequential(*modules) if extent else Downblock(out_planes, kernel_size=spatial)
         else:
             self.downop = nn.AdaptiveAvgPool2d(spatial // extent) if extent else nn.AdaptiveAvgPool2d(1)
