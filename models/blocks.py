@@ -16,7 +16,6 @@ class Downblock(nn.Module):
 
 class GEBlock(nn.Module):
     def __init__(self, in_planes, out_planes, stride, spatial, extent=0, extra_params=True, mlp=True, dropRate=0.0):
-        # If extent is zero, assuming global.
         super(GEBlock, self).__init__()
 
         self.bnrelu = nn.Sequential(nn.BatchNorm2d(in_planes), nn.ReLU(inplace=True))
